@@ -45,6 +45,14 @@ buildings on a property:
    report form or programming language is assumed.
 6. **Extensible without breaking.** Namespaced extension fields carry program-specific
    data, and readers keep data they don't understand.
+7. **Curves are first-class.** Any wall or outline edge can be an arc, and shapes
+   include circles and ellipses.
+8. **Versioned like source code.** Every saved version is a complete snapshot with a
+   revision id, links to the versions it came from and an optional content hash.
+   Element ids stay stable across versions, so any two versions can be compared and
+   merged.
+
+The full draft is in **[SPEC.md](SPEC.md)**.
 
 ## A taste
 
@@ -80,11 +88,20 @@ A one-storey house drawn as an exterior outline:
 }
 ```
 
+## Examples
+
+| File | What it shows |
+|---|---|
+| [`single-family.sketchy.json`](examples/single-family.sketchy.json) | A two-storey house in feet, drawn as exterior outlines: a curved sunroom, a bay window projection, an open-to-below foyer, a basement split into finished and unfinished parts, an attached garage, a porch and deck, a rotated detached cottage (an accessory unit), a site pool, area codes, symbols, two print pages and a final revision with history. |
+| [`condo-unit.sketchy.json`](examples/condo-unit.sketchy.json) | One condo unit on the seventh floor of a larger building, in metres, drawn room by room: party and partition walls, doors and windows placed on walls, fixtures, a balcony with a curved railing, and a sketch derived from a building template. |
+| [`commercial-building.sketchy.json`](examples/commercial-building.sketchy.json) | A three-storey retail and office building: tenant suites and common cores within each floor outline, one tenant spread across two spaces, a circular atrium open to below, stairs and elevators, storefront openings placed on space edges without walls, site parking, a georeference, an extension namespace and a revision that merges two parallel edits. |
+
+Addresses, people and codes are invented. Code schemes and profiles use the reserved
+`org.example` namespace. Element ids are short and readable for clarity; real files
+should use UUIDs.
+
 ## Next steps
 
-1. Draft the full specification: shapes and units, structures and levels, spaces and
-   units, walls and openings, presentation, stored results and extensions.
-2. Publish example files for very different properties: a single-family house, a
-   condo unit and a commercial building.
-3. Add a JSON Schema and conformance fixtures with expected areas.
-4. Document measurement rules as separate, named profiles.
+1. Review the [draft specification](SPEC.md) and examples.
+2. Add a JSON Schema and conformance fixtures with expected areas.
+3. Document measurement rules as separate, named profiles.
