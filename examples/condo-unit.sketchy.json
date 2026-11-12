@@ -17,7 +17,7 @@
     },
     "message": "Unit 7C measured",
     "status": "draft",
-    "content_hash": "sha256:3e2d55cbbd2f1dccd2e0b83607494a4cd20d9dac2e848a255b4875b1a697fbdc"
+    "content_hash": "sha256:09e69ba72a6d583ab04379634ab88250059dae5fdd1ebf68b00517c511861a54"
   },
   "derived_from": {
     "document": "0193a000-0000-7000-8000-00000000c7c0",
@@ -64,7 +64,6 @@
               "name": "Unit 7C",
               "use": "unit",
               "finished": true,
-              "heated": true,
               "unit": "u7c",
               "shape": {
                 "type": "polygon",
@@ -82,7 +81,6 @@
               "name": "Living and kitchen",
               "use": "living_room",
               "finished": true,
-              "heated": true,
               "within": "unit-7c",
               "unit": "u7c",
               "measured_to": "centerline",
@@ -96,7 +94,6 @@
               "name": "Bedroom 1",
               "use": "bedroom",
               "finished": true,
-              "heated": true,
               "within": "unit-7c",
               "unit": "u7c",
               "measured_to": "centerline",
@@ -110,7 +107,6 @@
               "name": "Bedroom 2",
               "use": "bedroom",
               "finished": true,
-              "heated": true,
               "within": "unit-7c",
               "unit": "u7c",
               "measured_to": "centerline",
@@ -124,7 +120,6 @@
               "name": "Bathroom",
               "use": "bathroom",
               "finished": true,
-              "heated": true,
               "within": "unit-7c",
               "unit": "u7c",
               "measured_to": "centerline",
@@ -138,7 +133,6 @@
               "name": "Hall",
               "use": "hall",
               "finished": true,
-              "heated": true,
               "within": "unit-7c",
               "unit": "u7c",
               "measured_to": "centerline",
@@ -151,7 +145,7 @@
               "id": "balcony",
               "name": "Balcony",
               "use": "balcony",
-              "enclosed": false,
+              "enclosure": "open",
               "unit": "u7c",
               "shape": {
                 "type": "polygon",
@@ -222,7 +216,7 @@
               "start": [6, 0],
               "end": [6, 9],
               "thickness": 0.1,
-              "kind": "partition",
+              "kind": "interior",
               "alignment": "center"
             },
             {
@@ -230,7 +224,7 @@
               "start": [0, 5],
               "end": [10, 5],
               "thickness": 0.1,
-              "kind": "partition",
+              "kind": "interior",
               "alignment": "center"
             },
             {
@@ -238,7 +232,7 @@
               "start": [3, 5],
               "end": [3, 9],
               "thickness": 0.1,
-              "kind": "partition",
+              "kind": "interior",
               "alignment": "center"
             },
             {

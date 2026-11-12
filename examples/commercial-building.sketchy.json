@@ -18,7 +18,7 @@
     },
     "message": "Merged tenant layout updates from leasing and the site survey",
     "status": "draft",
-    "content_hash": "sha256:eeae797bfcbf4887c6dee7a7e463c3c03776007125c7a05713f113ec129b397f"
+    "content_hash": "sha256:192db367cd2b41976b09c028e33503cc347472ffa0d3f3eed633b01826ad65a3"
   },
   "history": [
     {
@@ -150,7 +150,6 @@
               "name": "Suite 101",
               "use": "retail",
               "finished": true,
-              "heated": true,
               "within": "l1-floor",
               "shape": {
                 "type": "polygon",
@@ -169,7 +168,6 @@
               "name": "Lobby",
               "use": "lobby",
               "finished": true,
-              "heated": true,
               "within": "l1-floor",
               "shape": {
                 "type": "polygon",
@@ -187,7 +185,6 @@
               "name": "Suite 102",
               "use": "retail",
               "finished": true,
-              "heated": true,
               "within": "l1-floor",
               "shape": {
                 "type": "polygon",
@@ -275,7 +272,6 @@
               "name": "Suite 201",
               "use": "office",
               "finished": true,
-              "heated": true,
               "within": "l2-floor",
               "shape": {
                 "type": "polygon",
@@ -294,7 +290,6 @@
               "name": "Core",
               "use": "circulation",
               "finished": true,
-              "heated": true,
               "within": "l2-floor",
               "shape": {
                 "type": "polygon",
@@ -312,7 +307,6 @@
               "name": "Suite 202",
               "use": "office",
               "finished": true,
-              "heated": true,
               "within": "l2-floor",
               "shape": {
                 "type": "polygon",
@@ -377,7 +371,6 @@
               "name": "Suite 301 (west)",
               "use": "office",
               "finished": true,
-              "heated": true,
               "within": "l3-floor",
               "shape": {
                 "type": "polygon",
@@ -396,7 +389,6 @@
               "name": "Core",
               "use": "circulation",
               "finished": true,
-              "heated": true,
               "within": "l3-floor",
               "shape": {
                 "type": "polygon",
@@ -414,7 +406,6 @@
               "name": "Suite 301 (east)",
               "use": "office",
               "finished": true,
-              "heated": true,
               "within": "l3-floor",
               "shape": {
                 "type": "polygon",

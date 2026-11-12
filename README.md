@@ -52,7 +52,8 @@ buildings on a property:
    Element ids stay stable across versions, so any two versions can be compared and
    merged.
 
-The full draft is in **[SPEC.md](SPEC.md)**.
+The full draft is in **[SPEC.md](SPEC.md)**, and every type field takes values from the
+**[data dictionary](DICTIONARY.md)**.
 
 ## A taste
 

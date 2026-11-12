@@ -17,7 +17,7 @@
     },
     "message": "Added rear deck and pool after second site visit",
     "status": "final",
-    "content_hash": "sha256:dfaeb3d75e714d16e34025493da86daaba95d0b40e600716678e397e7e3f15c3"
+    "content_hash": "sha256:48293d912a618154ed873fa04b322f51fb75b5d96b91b7305e2cc2e1cda0f2e0"
   },
   "history": [
     {
@@ -95,7 +95,6 @@
               "name": "First floor",
               "use": "living",
               "finished": true,
-              "heated": true,
               "unit": "main",
               "shape": {
                 "type": "polygon",
@@ -119,8 +118,6 @@
               "name": "Sunroom",
               "use": "living",
               "finished": true,
-              "heated": true,
-              "enclosed": true,
               "unit": "main",
               "shape": {
                 "type": "polygon",
@@ -155,7 +152,7 @@
               "id": "porch",
               "name": "Covered porch",
               "use": "porch",
-              "enclosed": false,
+              "enclosure": "covered",
               "unit": "main",
               "shape": {
                 "type": "polygon",
@@ -172,7 +169,7 @@
               "id": "deck",
               "name": "Rear deck",
               "use": "deck",
-              "enclosed": false,
+              "enclosure": "open",
               "unit": "main",
               "shape": {
                 "type": "polygon",
@@ -257,7 +254,6 @@
               "name": "Second floor",
               "use": "living",
               "finished": true,
-              "heated": true,
               "unit": "main",
               "shape": {
                 "type": "polygon",
@@ -294,7 +290,6 @@
               "name": "Finished basement",
               "use": "living",
               "finished": true,
-              "heated": true,
               "unit": "main",
               "shape": {
                 "type": "polygon",
@@ -352,7 +347,6 @@
               "name": "Cottage",
               "use": "living",
               "finished": true,
-              "heated": true,
               "unit": "adu",
               "shape": {
                 "type": "polygon",

@@ -46,7 +46,8 @@ RFC 2119.
    be compared and merged.
 6. **Ignore what you don't know, keep what you don't own.** Readers tolerate unknown
    data, and editors preserve it.
-7. **Vendor- and language-agnostic.** Plain JSON, explicit units, open vocabularies.
+7. **Vendor- and language-agnostic.** Plain JSON, explicit units, and a
+   [data dictionary](DICTIONARY.md) of defined values for every type field.
 
 ## 2. File basics
 
@@ -173,7 +174,7 @@ A **structure** is a building or other improvement.
 |---|---|
 | `id` | Required. |
 | `name` | For example `"Main house"` or `"Building B"`. |
-| `kind` | Recommended: `dwelling`, `accessory_dwelling`, `garage`, `outbuilding`, `barn`, `commercial`, `industrial`, `mixed_use`, `parking_structure`, `manufactured_home`. |
+| `kind` | From the [dictionary](DICTIONARY.md#structurekind), for example `dwelling`, `accessory_dwelling`, `multifamily`, `garage`, `commercial`. |
 | `attachment` | `detached`, `attached` or `semi_detached`, relative to other structures. |
 | `position` | Where the structure's `[0, 0]` sits in the site frame. Default `[0, 0]`. |
 | `rotation` | Rotation of the structure frame within the site frame. Default `0`. |
@@ -206,8 +207,7 @@ a porch, a single room and a tenant suite are all spaces.
 | `shape` | Required. Any shape from [§4.3](#43-shapes). |
 | `use` | What the space is. Recommended values are below. |
 | `finished` | Finished to the standard of the building's occupied areas. Omitted means unknown. |
-| `enclosed` | Walled and roofed against the weather. |
-| `heated` | Conditioned for year-round use. |
+| `enclosure` | `interior`, `enclosed`, `screened`, `covered` or `open`. Distinguishes a room from a three-season room, a screened or covered porch and a deck. Omitted means `interior` for room-like uses. |
 | `within` | `id` of the space this one subdivides. |
 | `subtract` | `true` if this space's area is deducted from its `within` parent rather than being part of it. |
 | `area_factor` | Multiplier applied to this space's area by producers that weight areas. Default `1`. |
@@ -218,15 +218,10 @@ a porch, a single room and a tenant suite are all spaces.
 | `height` | Height of the space, where it differs from the ceiling (for example a two-storey room). |
 | `access` | How the space is reached, if it matters to a rule: `interior`, `through_unfinished`, `exterior_only`. |
 
-Recommended `use` values (open list):
-
-| Group | Values |
-|---|---|
-| Whole areas | `floor`, `living`, `common`, `tenant`, `unit` |
-| Rooms | `bedroom`, `bathroom`, `kitchen`, `dining`, `living_room`, `family`, `office`, `laundry`, `closet`, `hall`, `stair`, `utility`, `mechanical`, `storage` |
-| Vehicle | `garage`, `carport`, `parking` |
-| Outdoor | `porch`, `deck`, `patio`, `balcony`, `terrace`, `pool`, `breezeway` |
-| Commercial | `retail`, `office`, `warehouse`, `industrial`, `restaurant`, `lobby`, `circulation`, `amenity`, `loading` |
+`use` takes a value from the [dictionary](DICTIONARY.md#spaceuse). It covers whole
+areas (`floor`, `unit`, `living`, `common`, `tenant`), rooms (`bedroom`, `kitchen`, …),
+vehicle space (`garage`, `carport`, `parking`), outdoor space (`porch`, `deck`, `patio`,
+`balcony`, …) and commercial space (`retail`, `lobby`, `circulation`, …).
 
 **Detail levels.** Producers draw what they know:
 
@@ -251,7 +246,7 @@ spaces join a unit with their `unit` field.
 |---|---|
 | `id` | Required. |
 | `name` | |
-| `kind` | Recommended: `dwelling`, `tenant_space`, `common_area`, `storage_unit`. |
+| `kind` | From the [dictionary](DICTIONARY.md#unitkind): `dwelling`, `tenant_space`, `common_area`, `storage_unit`, `parking_space`, `other`. |
 | `accessory` | `true` for a unit subordinate to a primary dwelling. |
 
 ## 8. Walls, openings, features and voids
@@ -271,7 +266,7 @@ All of these are optional detail on a level.
 | `start`, `end` | Required. |
 | `bulge` | Curves the wall into an arc ([§4.2](#42-paths-and-curved-edges)). Default `0`. |
 | `thickness` | Wall thickness. |
-| `kind` | Recommended: `exterior`, `interior`, `party`, `partition`, `fire_rated`, `retaining`, `half_wall`. |
+| `kind` | From the [dictionary](DICTIONARY.md#wallkind): `exterior`, `interior`, `party`, `half_wall`, `retaining`, `other`. |
 | `alignment` | Which line `start`–`end` describes: `center`, `left` or `right` face, looking from `start` to `end`. Default `center`. |
 | `height` | Wall height, where it differs from the ceiling. |
 | `bounds` | Which space edges this wall forms, as `{ "space", "edge" }` pairs. Lets editors move a wall and its rooms together. |
@@ -289,7 +284,7 @@ walls.
 
 | Field | Meaning |
 |---|---|
-| `kind` | Recommended: `door`, `double_door`, `sliding_door`, `garage_door`, `window`, `bay_window`, `bow_window`, `skylight`, `cased_opening`, `pass_through`. |
+| `kind` | From the [dictionary](DICTIONARY.md#openingkind), for example `door`, `sliding_door`, `garage_door`, `window`, `bay_window`, `cased_opening`. |
 | `wall`, or `space` + `edge` | Where the opening sits. |
 | `offset` | Distance along the wall or edge, from its start, to the near side of the opening. On a curved wall it is measured along the arc. |
 | `width`, `height`, `sill_height` | Size and placement. |
@@ -308,9 +303,9 @@ Fixed items on a level: stairs, elevators, fireplaces, plumbing fixtures, applia
 
 `position` is the centre. `width` runs along local x and `length` along local y, before
 `rotation`. Stairs MAY name the level they lead to (`connects_to`) and the level whose
-area they count toward (`counted_on`). `kind` is open, for example `stair`, `elevator`,
-`fireplace`, `chimney`, `water_heater`, `furnace`, `sink`, `toilet`, `tub`, `shower`,
-`range`, `refrigerator`, `island`.
+area they count toward (`counted_on`). `kind` comes from the
+[dictionary](DICTIONARY.md#featurekind), for example `stair`, `elevator`, `fireplace`,
+`sink`, `range` or `island`.
 
 ### 8.4 Voids
 
@@ -524,8 +519,9 @@ ignore.
   the newer data, and SHOULD warn the user before doing so.
 - A field name is never reused with a new meaning. Fields are deprecated, and only
   removed in a major version.
-- Enumerations are open: an unknown value of an open vocabulary (`use`, `kind`, …) MUST
-  be treated as "other", not as an error.
+- Type fields take values from the [data dictionary](DICTIONARY.md). New values are
+  added only in minor versions. A reader treats a value it doesn't know as `other`,
+  not as an error. Finer distinctions go in classifications, not new values.
 - Unknown keys outside `extras` are reserved for future versions. Readers ignore them,
   editors preserve them when they can, and writers MUST NOT invent them.
 - Each published version has a JSON Schema at a stable URL and a set of conformance
@@ -639,7 +635,7 @@ and records the inputs they need:
 | Rules need | Field |
 |---|---|
 | Above or below ground | level `grade` |
-| Finished, enclosed, heated | space `finished`, `enclosed`, `heated` |
+| Finished, and how enclosed | space `finished`, `enclosure` |
 | What the space is | space `use`, `classifications` |
 | Which dwelling or tenant | space `unit`, unit `accessory` |
 | Ceiling height and slope | `ceiling_height`, `ceiling_sloped` |
