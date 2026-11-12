@@ -1,6 +1,6 @@
 # sketchy.json specification
 
-**Draft 0.1. Status: request for comments.**
+**Draft 0.2. Status: request for comments.**
 
 `sketchy.json` is an open JSON format for building sketches and floor plans. A file
 describes the buildings on a property, their levels, and the spaces, walls, openings
@@ -28,9 +28,10 @@ RFC 2119.
 13. [Extensions](#13-extensions)
 14. [Format versioning](#14-format-versioning)
 15. [Document revisions](#15-document-revisions)
-16. [Measurement profiles](#16-measurement-profiles)
-17. [Conformance](#17-conformance)
-18. [Open questions](#18-open-questions)
+16. [Store files](#16-store-files)
+17. [Measurement profiles](#17-measurement-profiles)
+18. [Conformance](#18-conformance)
+19. [Open questions](#19-open-questions)
 
 ## 1. Design principles
 
@@ -57,7 +58,8 @@ RFC 2119.
   `format` field, not its name.
 - Suggested media type: `application/vnd.property-hackers.sketchy+json`.
 - Keys are `snake_case`. Object key order has no meaning. Array order has no meaning
-  unless this spec says it does (polygon points, history and drawing order do).
+  unless this spec says it does (polygon points, per-edge arrays, history and drawing
+  order do).
 - Timestamps are [RFC 3339](https://www.rfc-editor.org/rfc/rfc3339) strings in UTC,
   for example `"2026-11-12T15:30:00Z"`.
 - Writers SHOULD emit numbers without exponents and SHOULD NOT emit `NaN` or
@@ -68,8 +70,8 @@ RFC 2119.
 ```json
 {
   "format": "sketchy",
-  "format_version": "0.1",
-  "$schema": "https://property-hackers.github.io/sketchy/schema/0.1/sketchy.schema.json",
+  "format_version": "0.2",
+  "$schema": "https://property-hackers.github.io/sketchy/schema/0.2/sketchy.schema.json",
   "id": "0193a5f2-6c1e-7a40-9d3e-2b8f4c1a9e70",
   "revision": { "id": "0193a5f8-...", "parents": [], "created_at": "2026-11-12T15:30:00Z" },
   "length_unit": "ft",
@@ -132,12 +134,16 @@ against known points.
 ### 4.2 Paths and curved edges
 
 Outlines are lists of points. Any edge can be a circular arc, using the **bulge**
-convention long used by CAD interchange formats: one number per edge, equal to the
-tangent of a quarter of the arc's included angle. `0` is a straight edge, `1` is a
-half-circle, and positive values bow to the left of the edge's direction of travel.
-A bulge can represent any arc up to a full circle except exactly 360°.
+convention of DXF and AutoCAD: one number per edge, equal to the tangent of a quarter
+of the arc's included angle. `0` is a straight edge and `1` or `-1` is a half-circle.
+A positive bulge is a counter-clockwise arc from the edge's start to its end, so it
+bows to the right of the direction of travel. A negative bulge is clockwise and bows to
+the left. A bulge can represent any arc up to a full circle except exactly 360°.
 
-The arc's sagitta (the rise of the arc above its chord) is `bulge × chord / 2`.
+For example, the edge from `[0, 0]` to `[10, 0]` with bulge `1` is a half-circle that
+passes through `[5, -5]`. With bulge `-1` it passes through `[5, 5]`.
+
+The arc's sagitta (the rise of the arc above its chord) is `|bulge| × chord / 2`.
 Producers that store a rise or an angle convert to bulge.
 
 ### 4.3 Shapes
@@ -149,6 +155,9 @@ Every shape is an object with a `type`.
 { "type": "polygon",  "points": [[0,0],[20,0],[20,10],[0,10]], "bulges": [0, 0.3, 0, 0] }
 { "type": "polygon",  "points": [[0,0],[30,0],[30,30],[0,30]],
                       "holes": [ { "points": [[10,10],[20,10],[20,20],[10,20]] } ] }
+{ "type": "polygon",  "points": [[0,0],[20,0],[20,10],[0,10]],
+                      "edges": ["physical", "virtual", "physical", "physical"],
+                      "edge_measured_to": [null, null, "centerline", null] }
 { "type": "circle",   "center": [5, 5], "radius": 5 }
 { "type": "ellipse",  "center": [5, 5], "radius_x": 6, "radius_y": 3, "rotation": 30 }
 { "type": "polyline", "points": [[0,0],[12,0],[12,8]], "bulges": [0, 0] }
@@ -157,7 +166,7 @@ Every shape is an object with a `type`.
 
 | Type | Closed | Notes |
 |---|---|---|
-| `polygon` | yes | `points` lists each vertex once; the first is not repeated. Edge `i` runs from `points[i]` to the next point, and the last edge closes to `points[0]`. Optional `bulges` has one value per edge. Optional `holes` are rings (each `{ "points", "bulges"? }`) cut out of the polygon. Winding order has no meaning. Edges MUST NOT cross. |
+| `polygon` | yes | `points` lists each vertex once; the first is not repeated. Edge `i` runs from `points[i]` to the next point, and the last edge closes to `points[0]`. Optional `bulges`, `edges` and `edge_measured_to` have one value per edge. Optional `holes` are rings (each `{ "points", "bulges"?, "edges"?, "edge_measured_to"? }`) cut out of the polygon. Winding order has no meaning. Edges MUST NOT cross. |
 | `circle` | yes | |
 | `ellipse` | yes | `rotation` turns the x radius away from +x. |
 | `polyline` | no | An open path. Optional `bulges` has one value per segment (one fewer than points). |
@@ -165,6 +174,24 @@ Every shape is an object with a `type`.
 
 Closed shapes have an area. Open shapes do not. A space whose outline is a `polyline`
 is unfinished: the drawing is kept, but it MUST NOT contribute to area totals.
+
+**Rings.** A polygon's outline and each of its holes is a ring. Holes MUST lie inside
+the outer ring and MUST NOT overlap or touch each other or the outer ring. A ring's
+per-edge arrays (`bulges`, `edges`, `edge_measured_to`) belong to that ring. A writer
+that reverses a ring's point order MUST reverse its per-edge arrays to match and negate
+its bulges, so the shape stays the same.
+
+**Edge kinds.** Optional `edges` gives each edge of a ring a kind from the
+[dictionary](DICTIONARY.md#polygonedges). `physical`, the default, means something
+physically separates the two sides, such as a wall. `virtual` means nothing does, such
+as the line between an open-plan kitchen and living room. IFC calls this a VIRTUAL
+space boundary, and Revit a room separation line.
+
+**Per-edge boundary.** Optional `edge_measured_to` overrides
+[`measured_to`](#6-spaces) for single edges of a ring. Each entry is a `measured_to`
+value or `null`. A `null` or missing entry inherits the space's or document's value.
+For example, a townhouse measured to the exterior face, except for the shared party
+wall measured to its centerline, sets `centerline` on that one edge.
 
 ## 5. Structures and levels
 
@@ -189,7 +216,7 @@ A **level** is one floor of a structure.
 | `grade` | Required. `above`, `below` or `partially_below`, relative to the ground at the structure. |
 | `sequence` | Required. Counts up from `1` above grade and down from `1` below grade: first floor `above`/1, second floor `above`/2, basement `below`/1. |
 | `elevation` | Optional floor height relative to the structure's ground reference. Orders split levels and mezzanines that share a sequence. |
-| `ceiling_height` | Default ceiling height for spaces on the level. |
+| `ceiling` | Default ceiling for spaces on the level, as `{ "height" }`. See [§6.1](#61-ceilings). |
 | `spaces`, `walls`, `openings`, `features`, `voids` | Contents. |
 
 A sketch of part of a building, such as one condo unit, includes only the structure and
@@ -210,11 +237,11 @@ a porch, a single room and a tenant suite are all spaces.
 | `enclosure` | `interior`, `enclosed`, `screened`, `covered` or `open`. Distinguishes a room from a three-season room, a screened or covered porch and a deck. Omitted means `interior` for room-like uses. |
 | `within` | `id` of the space this one subdivides. |
 | `subtract` | `true` if this space's area is deducted from its `within` parent rather than being part of it. |
-| `area_factor` | Multiplier applied to this space's area by producers that weight areas. Default `1`. |
+| `area_factor` | Multiplier applied to this space's area by producers that weight areas. Default `1`. Profiles MAY ignore it. |
 | `declared_area` | An area entered by hand rather than computed from the shape, with `reason`. Geometry still wins when a reader computes. |
 | `unit` | `id` of the [unit](#7-units-of-occupancy) the space belongs to. |
-| `measured_to` | `exterior_face`, `interior_face`, `centerline` or `unspecified`. Overrides the document default. |
-| `ceiling_height`, `ceiling_sloped` | Overrides the level default. `ceiling_sloped` means part of the ceiling is lower. |
+| `measured_to` | `exterior_face`, `interior_face`, `centerline` or `unspecified`. Overrides the document default. A polygon's `edge_measured_to` overrides it for single edges ([§4.3](#43-shapes)). |
+| `ceiling` | Ceiling height, with optional zones where it differs. See [§6.1](#61-ceilings). |
 | `height` | Height of the space, where it differs from the ceiling (for example a two-storey room). |
 | `access` | How the space is reached, if it matters to a rule: `interior`, `through_unfinished`, `exterior_only`. |
 
@@ -235,6 +262,37 @@ its `area_factor`. A subdivision gives detail, not extra area. A subdivision wit
 `subtract: true` is deducted from its parent instead, which covers cut-outs drawn as
 their own shapes. Subdivisions MUST lie inside their parent. Their areas need not add up
 to the parent's, because walls take space.
+
+The floor area of a space is the area of its shape minus the area of the union of its
+holes, the voids on its level that overlap it, and its `subtract: true` children, each
+clipped to the space. A region covered by more than one of these is deducted once.
+Top-level spaces on a level MUST NOT overlap each other. Two spaces may overlap only
+when one is a subdivision of the other, directly or through a chain of `within`.
+
+### 6.1 Ceilings
+
+`ceiling` gives a space's ceiling height, and `zones` where it differs. A level's
+`ceiling` gives only the default `height`.
+
+```json
+"ceiling": {
+  "height": 8,
+  "zones": [
+    { "shape": { "type": "polygon", "points": [[0,20],[32,20],[32,28],[0,28]] },
+      "slope": { "from": [0, 28], "to": [0, 20], "min": 5, "max": 8 } },
+    { "shape": { "type": "circle", "center": [10, 10], "radius": 3 }, "height": 12 }
+  ]
+}
+```
+
+- Heights are measured from the space's own floor. Zone shapes are closed shapes in the
+  structure frame.
+- A zone has either a flat `height` or a `slope`. In a slope, the height is `min` on the
+  line through `from` and `max` on the line through `to`, both lines at right angles to
+  `from`→`to`, and it varies linearly along `from`→`to`.
+- Zones MUST NOT overlap each other and MUST lie within the space.
+- Outside every zone, `ceiling.height` applies. If it is absent, the level's
+  `ceiling.height` applies. If that is absent too, the height is unknown.
 
 ## 7. Units of occupancy
 
@@ -263,10 +321,11 @@ All of these are optional detail on a level.
 
 | Field | Meaning |
 |---|---|
+| `id` | Required. |
 | `start`, `end` | Required. |
 | `bulge` | Curves the wall into an arc ([§4.2](#42-paths-and-curved-edges)). Default `0`. |
 | `thickness` | Wall thickness. |
-| `kind` | From the [dictionary](DICTIONARY.md#wallkind): `exterior`, `interior`, `party`, `half_wall`, `retaining`, `other`. |
+| `kind` | From the [dictionary](DICTIONARY.md#wallkind): `exterior`, `interior`, `party`, `half_wall`, `railing`, `retaining`, `other`. |
 | `alignment` | Which line `start`–`end` describes: `center`, `left` or `right` face, looking from `start` to `end`. Default `center`. |
 | `height` | Wall height, where it differs from the ceiling. |
 | `bounds` | Which space edges this wall forms, as `{ "space", "edge" }` pairs. Lets editors move a wall and its rooms together. |
@@ -278,34 +337,65 @@ walls.
 
 ```json
 { "id": "d-entry", "kind": "door", "wall": "w-north", "offset": 4.0, "width": 3,
-  "swing": "in_left" }
+  "swing": "in_left", "swing_into": "hall" }
 { "id": "storefront", "kind": "door", "space": "s101", "edge": 0, "offset": 18, "width": 6 }
+{ "id": "court-door", "kind": "door", "space": "s101", "edge": 1, "hole": 0, "offset": 2, "width": 3 }
+{ "id": "sky-1", "kind": "skylight", "space": "s101",
+  "shape": { "type": "polygon", "points": [[10,10],[14,10],[14,14],[10,14]] } }
 ```
 
 | Field | Meaning |
 |---|---|
+| `id` | Required. |
 | `kind` | From the [dictionary](DICTIONARY.md#openingkind), for example `door`, `sliding_door`, `garage_door`, `window`, `bay_window`, `cased_opening`. |
-| `wall`, or `space` + `edge` | Where the opening sits. |
-| `offset` | Distance along the wall or edge, from its start, to the near side of the opening. On a curved wall it is measured along the arc. |
-| `width`, `height`, `sill_height` | Size and placement. |
-| `swing` | `in_left`, `in_right`, `out_left`, `out_right` or `none`. |
+| `wall`, or `space` + `edge` | Where the opening sits. `edge` indexes the edges of the space's outer ring. |
+| `hole` | With `space` + `edge`, the 0-based index of a hole. `edge` then indexes that hole ring's edges. |
+| `offset` | Distance along the wall or edge, from its start, to the near side of the opening. |
+| `width`, `height`, `sill_height` | Size and placement. On a curved wall or edge, `offset` and `width` are measured along the arc. |
+| `swing` | `in_left`, `in_right`, `out_left`, `out_right`, `none` or `unknown`. |
+| `swing_into` | `id` of the space `swing` is read from: `in_` swings into it, `out_` swings away from it, and left and right are as seen from it, facing the opening. For an opening on a space edge the default is that space. On a wall, writers SHOULD give it. |
+| `shape` | For a `skylight` hosted by a space (`space` without `edge`), a closed shape for its footprint, in the structure frame. |
 | `material` | Open string. |
 | `projection` | For bay and bow windows, a closed shape for the floor the window projects past the wall. |
 
 ### 8.3 Features
 
-Fixed items on a level: stairs, elevators, fireplaces, plumbing fixtures, appliances.
+Features are installed fixtures, equipment and appliances: stairs, elevators,
+fireplaces, plumbing fixtures, appliances. Loose furniture is not a feature.
 
 ```json
 { "id": "stair-1", "kind": "stair", "position": [12, 4], "rotation": 90,
-  "width": 3.5, "length": 12, "connects_to": "l2", "counted_on": "l1", "finished": true }
+  "width": 7, "length": 10, "connects_to": "l2", "well": "well-1", "finished": true,
+  "stair": { "configuration": "u_shaped", "direction": "up", "risers": 16,
+             "landings": [ { "shape": { "type": "polygon",
+                                        "points": [[7,0.5],[10,0.5],[10,7.5],[7,7.5]] } } ] } }
+{ "id": "col-1", "kind": "column", "position": [30, 20],
+  "shape": { "type": "circle", "center": [0, 0], "radius": 0.75 } }
 ```
 
-`position` is the centre. `width` runs along local x and `length` along local y, before
-`rotation`. Stairs MAY name the level they lead to (`connects_to`) and the level whose
-area they count toward (`counted_on`). `kind` comes from the
-[dictionary](DICTIONARY.md#featurekind), for example `stair`, `elevator`, `fireplace`,
-`sink`, `range` or `island`.
+| Field | Meaning |
+|---|---|
+| `id` | Required. |
+| `kind` | From the [dictionary](DICTIONARY.md#featurekind), for example `stair`, `elevator`, `fireplace`, `sink`, `range` or `island`. |
+| `position` | The centre, and the origin of the feature's local frame. |
+| `rotation` | Rotation of the local frame. Default `0`. |
+| `width`, `length` | Size of the feature's rectangle: `width` along local x and `length` along local y, before `rotation`. |
+| `shape` | A closed shape in the local frame (origin at `position`, before `rotation`). When present it replaces the `width` × `length` rectangle, for round columns, irregular hearths or L-shaped built-ins. |
+| `connects_to` | For a stair, `id` of the level it leads to. |
+| `well` | For a stair, `id` of the void that is its stairwell opening, on the level above or the same level. |
+| `stair` | Stair details, below. |
+
+`stair` describes a feature of kind `stair`. Every field is optional.
+
+| Field | Meaning |
+|---|---|
+| `configuration` | From the [dictionary](DICTIONARY.md#stairconfiguration): `straight`, `l_shaped`, `u_shaped`, `winder`, `spiral`, `curved`, `other`. |
+| `direction` | `up` or `down`, from the level the feature is on. |
+| `risers` | Number of risers, an integer. |
+| `landings` | `[{ "shape" }]`, each a closed shape in the structure frame. |
+
+Which level a stair's area counts toward is a measurement profile's decision, made from
+the stair's level, `direction` and `connects_to`.
 
 ### 8.4 Voids
 
@@ -317,8 +407,12 @@ opening, an atrium.
   "shape": { "type": "polygon", "points": [[0,0],[12,0],[12,10],[0,10]] } }
 ```
 
+A void has a required `id` and a closed `shape`. It is deducted from every space on its
+level that it overlaps ([§6](#6-spaces)).
+
 Voids describe the building. A space with `subtract: true` describes how a producer
-chose to deduct an area. Either may be used.
+chose to deduct an area. Either may be used. A region covered by both, or by a hole as
+well, is deducted once.
 
 ## 9. Classifications
 
@@ -365,13 +459,29 @@ void, annotation) MAY carry these:
 | `source` | Where the element came from: `{ "method", "device", "accuracy", "captured_at", "reference" }`. `method` is one of `drawn`, `measured`, `scanned`, `keyed`, `imported`, `inferred`. `accuracy` is a length. `reference` points to the original data, such as a scan id. |
 | `extras` | Machine-readable extension data. See [§13](#13-extensions). |
 
-**Identifiers.** Every `id` MUST be unique within the document. Ids SHOULD be UUIDs,
-preferably version 7, which sort by creation time. An element keeps its id for its whole
-life, including across revisions. A copied element gets a new id. Ids of deleted
-elements SHOULD NOT be reused.
+**Identifiers.** Structures, levels, spaces, units, walls, openings, features and voids
+MUST have an `id`. Every `id` MUST be unique within the document. An id MAY be any
+non-empty string. UUIDs, preferably version 7, which sort by creation time, are
+RECOMMENDED. Element ids are separate from revision ids and author ids: a reference
+never names a revision or an author. An element keeps its id for its whole life,
+including across revisions. A copied element gets a new id. Ids of deleted elements
+SHOULD NOT be reused.
 
-**References** (`within`, `unit`, `wall`, `space`, `connects_to`, `counted_on`, `bounds`,
-scopes, styles, layers, definitions) MUST name an id in the same document.
+**References** MUST name an element in the same document, of the expected type:
+
+| Field | Names a |
+|---|---|
+| `within`, `space`, `swing_into`, `bounds[].space`, `scope.space` | space |
+| `unit`, `scope.unit` | unit |
+| `wall`, `host.wall` | wall |
+| `connects_to`, annotation and underlay `level`, view `levels`, `scope.level` | level |
+| `structure` in a view or `scope` | structure |
+| `well` | void |
+| `target` | any element; a wall or space in a dimension |
+| `definition` | definition |
+| `element_layers` values, layer `parent` | layer |
+
+`within` chains MUST NOT form cycles.
 
 ## 11. Presentation
 
@@ -451,7 +561,7 @@ an aerial photo:
 ```
 
 `uri` MAY be a `data:` URI to embed the image. Embedded images make files large; see
-[open question 3](#18-open-questions).
+[open question 3](#19-open-questions).
 
 ## 12. Results
 
@@ -472,7 +582,7 @@ a geometry engine:
 ]
 ```
 
-- `profile` names the measurement rules that produced the values. See [§16](#16-measurement-profiles).
+- `profile` names the measurement rules that produced the values. See [§17](#17-measurement-profiles).
 - `revision` is the document revision the values were computed for.
 - `scope` names any of `structure`, `level`, `unit` or `space`. An empty scope means the
   whole document. `measure` names come from the profile. Values are in `length_unit`
@@ -512,6 +622,8 @@ ignore.
     valid under `x.n` is valid under `x.n+1`, with the same meaning.
   - A **major** version may remove or change meaning. Each major version is published
     with a migration guide.
+  - While the major version is `0`, a minor version MAY make incompatible changes. Each
+    one is listed in the spec's change notes. The additive-only rule applies from `1.0`.
 - Readers MUST reject a major version they don't support. Readers SHOULD read newer
   minor versions of a supported major, ignoring unknown fields.
 - Writers MUST write the lowest `format_version` that covers every field they emit.
@@ -526,6 +638,45 @@ ignore.
   editors preserve them when they can, and writers MUST NOT invent them.
 - Each published version has a JSON Schema at a stable URL and a set of conformance
   fixtures.
+
+### 14.1 Changes in 0.2
+
+Incompatible changes:
+
+- **Bulge sign.** Bulges follow DXF and AutoCAD: positive is counter-clockwise and bows
+  to the right of travel ([§4.2](#42-paths-and-curved-edges)). In 0.1 positive bowed left.
+- **Ceilings.** `ceiling` on levels and spaces replaces `ceiling_height` and
+  `ceiling_sloped`, and adds flat and sloped zones ([§6.1](#61-ceilings)).
+- **Stairs.** Feature `counted_on` is removed. Which level counts a stair is a profile's
+  decision.
+
+Additions and clarifications:
+
+- Stair details: `stair` (`configuration`, `direction`, `risers`, `landings`) and
+  `well` ([§8.3](#83-features)).
+- Feature `shape`, which replaces the `width` × `length` rectangle.
+- Polygon `edges` (`physical`, `virtual`) and `edge_measured_to`, per edge and per ring
+  ([§4.3](#43-shapes)).
+- Ring rules: holes inside the outer ring and not touching; reversing a ring reverses its
+  per-edge arrays and negates its bulges.
+- Openings: `hole` to sit on a hole's edge, `swing_into`, `offset` and `width` measured
+  along an arc, and skylights hosted by a space with a `shape`.
+- Floor area deducts the union of holes, voids and `subtract: true` children once.
+  Top-level spaces on a level must not overlap.
+- Walls, openings, features and voids must have ids. References must name an element of
+  the expected type, and `within` chains must not form cycles. Ids may be any non-empty
+  string.
+- Features are installed items; loose furniture is not a feature.
+- New dictionary values: wall `railing`, opening swing `unknown`, `polygon.edges`,
+  `stair.configuration`, `stair.direction`. A rule for omitted fields, `none`, `other`
+  and `unknown` ([dictionary](DICTIONARY.md)).
+- Profiles may ignore `area_factor`.
+- Minor versions before 1.0 may make incompatible changes.
+
+**Migrating a 0.1 file.** Negate every bulge, including wall `bulge`. Replace
+`ceiling_height: h` with `ceiling: { "height": h }`. Replace `ceiling_sloped` with a
+sloped zone where the slope is known, or drop it. Drop `counted_on`, and set the stair's
+`stair.direction` if known. Give every wall, opening, feature and void an `id`.
 
 ## 15. Document revisions
 
@@ -600,7 +751,7 @@ locking server or merge algorithm.
    digest.
 
 A reader that recomputes a different hash knows the content changed after the
-revision was recorded. Digital signatures are out of scope for 0.1, and can be added as
+revision was recorded. Digital signatures are out of scope for 0.2, and can be added as
 an extension that signs the content hash.
 
 ### 15.5 Comparing and merging
@@ -626,7 +777,80 @@ systems show small, readable changes: keep keys in a consistent order, keep arra
 stable between saves, format numbers consistently, and avoid rewriting elements that
 did not change.
 
-## 16. Measurement profiles
+## 16. Store files
+
+`sketchy.json` is the interchange form: one file, one revision. A program that keeps
+every revision of a sketch in a single file MAY use a **store file** instead. A store
+file is not a second format. Each revision inside it is a complete `sketchy.json`
+document, so nothing in the store is needed to read a revision.
+
+### 16.1 Container
+
+- A store file is a [SQLite](https://www.sqlite.org/fileformat2.html) version 3
+  database. This follows the precedent of GeoPackage and MBTiles.
+- File names SHOULD end in `.sketchy`. Readers MUST identify a file by its contents
+  (below), not its name.
+- Suggested media type: `application/vnd.property-hackers.sketchy+sqlite3`.
+- `PRAGMA application_id` is `0x534B4359` (ASCII `SKCY`) and `PRAGMA user_version` is
+  `1`. A later incompatible layout takes a new `user_version`.
+
+### 16.2 Schema
+
+```sql
+CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+CREATE TABLE revisions (
+  id TEXT PRIMARY KEY, sequence INTEGER NOT NULL, parents TEXT NOT NULL,
+  created_at TEXT NOT NULL, author TEXT, message TEXT,
+  status TEXT NOT NULL CHECK (status IN ('draft','final')),
+  content_hash TEXT NOT NULL, document TEXT NOT NULL
+);
+```
+
+`meta` holds these rows:
+
+| `key` | `value` |
+|---|---|
+| `format` | `sketchy`. |
+| `format_version` | The `format_version` ([§14](#14-format-versioning)) the store was created with. |
+| `document_id` | The document `id`. It is the same in every revision. |
+| `head` | The `id` of the current revision. |
+
+Each `revisions` row describes one revision:
+
+| Column | Meaning |
+|---|---|
+| `id` | The `revision.id`. |
+| `sequence` | The `revision.sequence`. |
+| `parents` | The `revision.parents`, as a JSON array of revision ids. |
+| `created_at` | The `revision.created_at`. |
+| `author`, `message` | The author's name and the message, or `NULL`. |
+| `status` | `draft` or `final`. |
+| `content_hash` | The `revision.content_hash` ([§15.4](#154-content-hash)). |
+| `document` | The complete `sketchy.json` document of the revision, as UTF-8 JSON text. |
+
+### 16.3 Rules
+
+- Every `document` is a valid, standalone `sketchy.json` document. Its `id` equals
+  `meta.document_id`, and its `revision` block matches its row.
+- `meta.head` names the current revision. The head document is the sketch.
+- Revisions are only added. A `final` revision MUST NOT be modified or deleted; an edit
+  appends a revision whose parent is the final one ([§15.2](#152-the-revision-block)).
+- Writers MUST change the database only inside transactions, and MUST insert the
+  revision and move `meta.head` in the same transaction, so a failed save leaves the
+  previous head intact.
+- Readers MUST check `application_id`, `user_version` and `meta.format` before using a
+  file, and MUST reject a file that fails any of them.
+- Readers SHOULD refuse a file that contains triggers or views, which have no place in
+  a store and can run SQL the reader did not write.
+
+### 16.4 Interchange
+
+A store is converted to `sketchy.json` by writing the head document. The export MAY
+add `history` summaries ([§15.3](#153-snapshots-and-history)) built from the
+`revisions` table. A `sketchy.json` file is imported as the first revision of a new
+store.
+
+## 17. Measurement profiles
 
 Residential, commercial and international measurement standards count space
 differently, and they change over time. `sketchy.json` keeps their rules out of the file
@@ -638,12 +862,13 @@ and records the inputs they need:
 | Finished, and how enclosed | space `finished`, `enclosure` |
 | What the space is | space `use`, `classifications` |
 | Which dwelling or tenant | space `unit`, unit `accessory` |
-| Ceiling height and slope | `ceiling_height`, `ceiling_sloped` |
-| Where it was measured to | `measured_to` |
-| Openings to below, deductions | `voids`, space `subtract` |
+| Ceiling height and slope | level and space `ceiling` (`height`, `zones`) |
+| Where it was measured to | `measured_to`, polygon `edge_measured_to` |
+| Open-plan divisions | polygon `edges` |
+| Openings to below, deductions | `voids`, polygon `holes`, space `subtract` |
 | Weighted areas | space `area_factor` |
 | Bay projections | opening `projection` |
-| Stairs and which floor counts them | feature `counted_on` |
+| Stairs and where they lead | feature level, `connects_to`, `well`, `stair.direction` |
 | How a space is reached | space `access` |
 
 A **profile** is a published set of rules for turning a `sketchy.json` document into
@@ -651,10 +876,12 @@ totals. It has a reverse-domain name, defines its `measure` names and rounding, 
 lists the fields it reads. Profiles are published separately from this spec, so a new
 standard or a revised one never changes the format.
 
-## 17. Conformance
+## 18. Conformance
 
-- A **valid document** has every required field, unique ids, resolvable references,
-  closed shapes that don't self-intersect, and subdivisions inside their parents.
+- A **valid document** has every required field, unique ids, references that resolve to
+  elements of the expected type, no `within` cycles, closed shapes that don't
+  self-intersect, holes inside their outer rings, subdivisions inside their parents,
+  top-level spaces that don't overlap, and ceiling zones that don't overlap.
 - A **reader** accepts every valid document of a supported major version and follows
   [§14](#14-format-versioning).
 - An **editor** is a reader that also writes. It preserves ids, `extras`, unknown
@@ -662,13 +889,13 @@ standard or a revised one never changes the format.
 - A JSON Schema per version checks structure. Rules a schema can't express (unique ids,
   references, geometry) are listed in the conformance fixtures.
 
-## 18. Open questions
+## 19. Open questions
 
 1. Should a file be able to mix units, or should producers always convert to one
    `length_unit`?
 2. Is `sequence` plus optional `elevation` enough to order every kind of split level?
 3. Should a zip bundle be defined for sketches that carry images (underlays, rendered
-   previews), instead of `data:` URIs?
+   previews), instead of `data:` URIs? (Deferred: no current need.)
 4. Which measurement profiles should be documented first?
 5. Should three-dimensional detail (roof pitch, wall heights for volume, floor
    elevations) get its own optional layer?

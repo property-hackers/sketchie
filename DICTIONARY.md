@@ -1,6 +1,6 @@
 # sketchy.json data dictionary
 
-**Draft 0.1.** Every enumerated field in the [specification](SPEC.md) takes one of the
+**Draft 0.2.** Every enumerated field in the [specification](SPEC.md) takes one of the
 values listed here. Values are lowercase `snake_case`.
 
 **Rules**
@@ -13,6 +13,9 @@ values listed here. Values are lowercase `snake_case`.
   it as `other` for fields that have `other`, and SHOULD warn for fields that don't.
 - Finer distinctions (a primary bedroom, a walk-in closet, a fire-rated wall) belong in
   classifications, not in new dictionary values.
+- An omitted optional field means unknown. `none` means known to be absent. `other`
+  means known but not listed. `unknown` exists only where a writer needs to state it
+  explicitly inside a required or enumerated context, such as `opening.swing`.
 
 ## Document and geometry
 
@@ -34,6 +37,12 @@ values listed here. Values are lowercase `snake_case`.
 | `polyline` | Open path with optional curved segments |
 | `arc` | Open circular arc |
 
+### `polygon.edges`
+| Value | Meaning |
+|---|---|
+| `physical` | Something physically separates the two sides, such as a wall. The default |
+| `virtual` | Nothing physically separates the two sides, such as an open-plan division. IFC's VIRTUAL space boundary, Revit's room separation line |
+
 ### `measured_to`
 | Value | Meaning |
 |---|---|
@@ -41,6 +50,9 @@ values listed here. Values are lowercase `snake_case`.
 | `interior_face` | Inside face of the walls around the space |
 | `centerline` | Centre of the surrounding walls |
 | `unspecified` | Not known |
+
+Also used for each entry of a polygon's `edge_measured_to`, where `null` inherits the
+space's or document's value.
 
 ### `source.method`
 | Value | Meaning |
@@ -164,7 +176,8 @@ values listed here. Values are lowercase `snake_case`.
 | `exterior` | Separates the building from outside |
 | `interior` | Separates spaces inside the building |
 | `party` | Shared with another unit or building |
-| `half_wall` | A low or partial-height wall, such as a railing wall |
+| `half_wall` | A low or partial-height solid wall, such as a pony wall |
+| `railing` | An open guard or balustrade, such as a balcony or stair railing |
 | `retaining` | Holds back earth |
 | `other` | |
 
@@ -195,11 +208,12 @@ values listed here. Values are lowercase `snake_case`.
 ### `opening.swing`
 | Value | Meaning |
 |---|---|
-| `in_left` | Opens into the space the opening is placed from, hinged on the left |
-| `in_right` | Opens inward, hinged on the right |
-| `out_left` | Opens outward, hinged on the left |
-| `out_right` | Opens outward, hinged on the right |
+| `in_left` | Opens into the `swing_into` space, hinged on the left as seen from that space |
+| `in_right` | Opens into the `swing_into` space, hinged on the right |
+| `out_left` | Opens away from the `swing_into` space, hinged on the left |
+| `out_right` | Opens away from the `swing_into` space, hinged on the right |
 | `none` | Does not swing |
+| `unknown` | Swings, but the direction is not known |
 
 ### `feature.kind`
 | Group | Values |
@@ -210,6 +224,23 @@ values listed here. Values are lowercase `snake_case`.
 | Plumbing | `sink`, `toilet`, `tub`, `shower` |
 | Kitchen and laundry | `range`, `refrigerator`, `dishwasher`, `island`, `washer`, `dryer` |
 | | `other` |
+
+### `stair.configuration`
+| Value | Meaning |
+|---|---|
+| `straight` | One straight run, with or without a mid-landing |
+| `l_shaped` | Two runs at a right angle, joined by a landing |
+| `u_shaped` | Two parallel runs in opposite directions, joined by a landing |
+| `winder` | Turns using tapered treads instead of a landing |
+| `spiral` | Wedge-shaped treads around a central post |
+| `curved` | Follows a curve without a central post |
+| `other` | |
+
+### `stair.direction`
+| Value | Meaning |
+|---|---|
+| `up` | Rises from the level the feature is on |
+| `down` | Descends from the level the feature is on |
 
 ## Revisions and results
 
