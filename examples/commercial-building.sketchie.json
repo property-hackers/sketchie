@@ -1,7 +1,7 @@
 {
-  "format": "sketchy",
+  "format": "sketchie",
   "format_version": "0.2",
-  "$schema": "https://property-hackers.github.io/sketchy/schema/0.2/sketchy.schema.json",
+  "$schema": "https://property-hackers.github.io/sketchie/schema/0.2/sketchie.schema.json",
   "extensions_used": ["org.example.leasing"],
   "id": "0193a3e5-3e70-7152-c3d4-e5f60718293a",
   "revision": {

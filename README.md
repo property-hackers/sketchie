@@ -1,4 +1,4 @@
-# sketchy.json
+# sketchie.json
 
 **A proposal for an open, vendor-agnostic JSON format for building sketches and floor
 plans.**
@@ -14,7 +14,7 @@ fact about a building: its shape and how much floor area it has.
 
 ## The idea
 
-`sketchy.json` is a plain JSON file, saved as `*.sketchy.json`, that describes the
+`sketchie.json` is a plain JSON file, saved as `*.sketchie.json`, that describes the
 buildings on a property:
 
 - **Structures**: houses, garages, outbuildings, commercial buildings. A property can
@@ -55,9 +55,9 @@ buildings on a property:
 The full draft is in **[SPEC.md](SPEC.md)**, and every type field takes values from the
 **[data dictionary](DICTIONARY.md)**.
 
-Programs that keep every revision of a sketch in one file can use a `.sketchy` store
-(a SQLite database of full `sketchy.json` snapshots), defined in
-[SPEC.md](SPEC.md#16-store-files). `*.sketchy.json` remains the interchange form.
+Programs that keep every revision of a sketch in one file can use a `.sketchie` store
+(a SQLite database of full `sketchie.json` snapshots), defined in
+[SPEC.md](SPEC.md#16-store-files). `*.sketchie.json` remains the interchange form.
 
 ## A taste
 
@@ -65,7 +65,7 @@ A one-storey house drawn as an exterior outline:
 
 ```json
 {
-  "format": "sketchy",
+  "format": "sketchie",
   "format_version": "0.2",
   "id": "c6a1b9e2-1f0c-4c55-9a4e-6f3f2a1d7b10",
   "length_unit": "ft",
@@ -97,9 +97,9 @@ A one-storey house drawn as an exterior outline:
 
 | File | What it shows |
 |---|---|
-| [`single-family.sketchy.json`](examples/single-family.sketchy.json) | A two-storey house in feet, drawn as the usual appraisal exterior outlines with no walls: an L-shaped first floor with an angled front bay, a smaller second floor with an open-to-below foyer and a sloped ceiling zone, a U-shaped stair with a landing and a stairwell opening, an attached two-car garage sharing a wall with the house, a covered porch, a rear deck, a curved sunroom, a basement under part of the house split finished and unfinished, a detached cottage (an accessory unit), a site pool and driveway, area codes, exterior dimensions, text labels for the outdoor spaces, symbols, two print pages and a final revision with history. |
-| [`condo-unit.sketchy.json`](examples/condo-unit.sketchy.json) | One 96 m² two-bedroom, two-bath condo unit on the seventh floor of a larger building, in metres, drawn room by room: an open kitchen and living room divided by a virtual edge, party-wall edges measured to the centreline, an entry hall, a primary suite with ensuite and walk-in closet, a laundry closet, party, exterior and partition walls of different thicknesses, doors and windows placed on walls with swings read from named rooms, fixtures, a balcony with a curved railing, and a sketch derived from a building template. |
-| [`commercial-building.sketchy.json`](examples/commercial-building.sketchy.json) | A three-storey retail and office building (112 by 64 ft): three storefront retail suites and a double-height lobby at grade, a central core with stairs, elevators and restrooms, round lobby columns drawn with feature shapes, two office suites on the second floor, a single tenant on the whole third floor, a circular atrium open to below, storefront openings placed on space edges without walls, front and rear site parking, a georeference, an extension namespace and a revision that merges two parallel edits. |
+| [`single-family.sketchie.json`](examples/single-family.sketchie.json) | A two-storey house in feet, drawn as the usual appraisal exterior outlines with no walls: an L-shaped first floor with an angled front bay, a smaller second floor with an open-to-below foyer and a sloped ceiling zone, a U-shaped stair with a landing and a stairwell opening, an attached two-car garage sharing a wall with the house, a covered porch, a rear deck, a curved sunroom, a basement under part of the house split finished and unfinished, a detached cottage (an accessory unit), a site pool and driveway, area codes, exterior dimensions, text labels for the outdoor spaces, symbols, two print pages and a final revision with history. |
+| [`condo-unit.sketchie.json`](examples/condo-unit.sketchie.json) | One 96 m² two-bedroom, two-bath condo unit on the seventh floor of a larger building, in metres, drawn room by room: an open kitchen and living room divided by a virtual edge, party-wall edges measured to the centreline, an entry hall, a primary suite with ensuite and walk-in closet, a laundry closet, party, exterior and partition walls of different thicknesses, doors and windows placed on walls with swings read from named rooms, fixtures, a balcony with a curved railing, and a sketch derived from a building template. |
+| [`commercial-building.sketchie.json`](examples/commercial-building.sketchie.json) | A three-storey retail and office building (112 by 64 ft): three storefront retail suites and a double-height lobby at grade, a central core with stairs, elevators and restrooms, round lobby columns drawn with feature shapes, two office suites on the second floor, a single tenant on the whole third floor, a circular atrium open to below, storefront openings placed on space edges without walls, front and rear site parking, a georeference, an extension namespace and a revision that merges two parallel edits. |
 
 Addresses, people and codes are invented. Code schemes and profiles use the reserved
 `org.example` namespace. Element ids are short and readable for clarity. Any non-empty
