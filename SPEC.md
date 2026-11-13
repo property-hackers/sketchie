@@ -811,7 +811,7 @@ CREATE TABLE revisions (
 | `key` | `value` |
 |---|---|
 | `format` | `sketchy`. |
-| `format_version` | The `format_version` ([§14](#14-format-versioning)) the store was created with. |
+| `format_version` | The `format_version` ([§14](#14-format-versioning)) of the newest revision written to the store. |
 | `document_id` | The document `id`. It is the same in every revision. |
 | `head` | The `id` of the current revision. |
 
