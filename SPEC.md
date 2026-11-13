@@ -1,8 +1,8 @@
-# sketchy.json specification
+# sketchie.json specification
 
 **Draft 0.2. Status: request for comments.**
 
-`sketchy.json` is an open JSON format for building sketches and floor plans. A file
+`sketchie.json` is an open JSON format for building sketches and floor plans. A file
 describes the buildings on a property, their levels, and the spaces, walls, openings
 and fixtures on each level. It scales from a single exterior outline to a full floor
 plan of a multi-building, multi-tenant property, and it records how the sketch changed
@@ -54,9 +54,9 @@ RFC 2119.
 
 - A file is a single UTF-8 JSON object ([RFC 8259](https://www.rfc-editor.org/rfc/rfc8259)).
   No comments, no trailing commas, no byte-order mark.
-- File names SHOULD end in `.sketchy.json`. Readers MUST identify a file by its
+- File names SHOULD end in `.sketchie.json`. Readers MUST identify a file by its
   `format` field, not its name.
-- Suggested media type: `application/vnd.property-hackers.sketchy+json`.
+- Suggested media type: `application/vnd.property-hackers.sketchie+json`.
 - Keys are `snake_case`. Object key order has no meaning. Array order has no meaning
   unless this spec says it does (polygon points, per-edge arrays, history and drawing
   order do).
@@ -69,9 +69,9 @@ RFC 2119.
 
 ```json
 {
-  "format": "sketchy",
+  "format": "sketchie",
   "format_version": "0.2",
-  "$schema": "https://property-hackers.github.io/sketchy/schema/0.2/sketchy.schema.json",
+  "$schema": "https://property-hackers.github.io/sketchie/schema/0.2/sketchie.schema.json",
   "id": "0193a5f2-6c1e-7a40-9d3e-2b8f4c1a9e70",
   "revision": { "id": "0193a5f8-...", "parents": [], "created_at": "2026-11-12T15:30:00Z" },
   "length_unit": "ft",
@@ -81,7 +81,7 @@ RFC 2119.
 
 | Field | Required | Meaning |
 |---|---|---|
-| `format` | yes | Always `"sketchy"`. |
+| `format` | yes | Always `"sketchie"`. |
 | `format_version` | yes | Spec version the file follows. See [§14](#14-format-versioning). |
 | `$schema` | no | URL of the JSON Schema for that version, for editors and validators. |
 | `extensions_used` | no | Extension namespaces present in the file. See [§13](#13-extensions). |
@@ -681,7 +681,7 @@ sloped zone where the slope is known, or drop it. Drop `counted_on`, and set the
 ## 15. Document revisions
 
 A sketch changes over time: drawn in the field, corrected in the office, revised after
-review. `sketchy.json` borrows the model that version-control systems have refined over
+review. `sketchie.json` borrows the model that version-control systems have refined over
 decades: every saved version is a complete snapshot, versions link to their parents,
 and content can be verified by hash. It deliberately does not require a change log,
 locking server or merge algorithm.
@@ -779,18 +779,18 @@ did not change.
 
 ## 16. Store files
 
-`sketchy.json` is the interchange form: one file, one revision. A program that keeps
+`sketchie.json` is the interchange form: one file, one revision. A program that keeps
 every revision of a sketch in a single file MAY use a **store file** instead. A store
-file is not a second format. Each revision inside it is a complete `sketchy.json`
+file is not a second format. Each revision inside it is a complete `sketchie.json`
 document, so nothing in the store is needed to read a revision.
 
 ### 16.1 Container
 
 - A store file is a [SQLite](https://www.sqlite.org/fileformat2.html) version 3
   database. This follows the precedent of GeoPackage and MBTiles.
-- File names SHOULD end in `.sketchy`. Readers MUST identify a file by its contents
+- File names SHOULD end in `.sketchie`. Readers MUST identify a file by its contents
   (below), not its name.
-- Suggested media type: `application/vnd.property-hackers.sketchy+sqlite3`.
+- Suggested media type: `application/vnd.property-hackers.sketchie+sqlite3`.
 - `PRAGMA application_id` is `0x534B4359` (ASCII `SKCY`) and `PRAGMA user_version` is
   `1`. A later incompatible layout takes a new `user_version`.
 
@@ -810,8 +810,8 @@ CREATE TABLE revisions (
 
 | `key` | `value` |
 |---|---|
-| `format` | `sketchy`. |
-| `format_version` | The `format_version` ([§14](#14-format-versioning)) the store was created with. |
+| `format` | `sketchie`. |
+| `format_version` | The `format_version` ([§14](#14-format-versioning)) of the newest revision written to the store. |
 | `document_id` | The document `id`. It is the same in every revision. |
 | `head` | The `id` of the current revision. |
 
@@ -826,11 +826,11 @@ Each `revisions` row describes one revision:
 | `author`, `message` | The author's name and the message, or `NULL`. |
 | `status` | `draft` or `final`. |
 | `content_hash` | The `revision.content_hash` ([§15.4](#154-content-hash)). |
-| `document` | The complete `sketchy.json` document of the revision, as UTF-8 JSON text. |
+| `document` | The complete `sketchie.json` document of the revision, as UTF-8 JSON text. |
 
 ### 16.3 Rules
 
-- Every `document` is a valid, standalone `sketchy.json` document. Its `id` equals
+- Every `document` is a valid, standalone `sketchie.json` document. Its `id` equals
   `meta.document_id`, and its `revision` block matches its row.
 - `meta.head` names the current revision. The head document is the sketch.
 - Revisions are only added. A `final` revision MUST NOT be modified or deleted; an edit
@@ -845,15 +845,15 @@ Each `revisions` row describes one revision:
 
 ### 16.4 Interchange
 
-A store is converted to `sketchy.json` by writing the head document. The export MAY
+A store is converted to `sketchie.json` by writing the head document. The export MAY
 add `history` summaries ([§15.3](#153-snapshots-and-history)) built from the
-`revisions` table. A `sketchy.json` file is imported as the first revision of a new
+`revisions` table. A `sketchie.json` file is imported as the first revision of a new
 store.
 
 ## 17. Measurement profiles
 
 Residential, commercial and international measurement standards count space
-differently, and they change over time. `sketchy.json` keeps their rules out of the file
+differently, and they change over time. `sketchie.json` keeps their rules out of the file
 and records the inputs they need:
 
 | Rules need | Field |
@@ -871,7 +871,7 @@ and records the inputs they need:
 | Stairs and where they lead | feature level, `connects_to`, `well`, `stair.direction` |
 | How a space is reached | space `access` |
 
-A **profile** is a published set of rules for turning a `sketchy.json` document into
+A **profile** is a published set of rules for turning a `sketchie.json` document into
 totals. It has a reverse-domain name, defines its `measure` names and rounding, and
 lists the fields it reads. Profiles are published separately from this spec, so a new
 standard or a revised one never changes the format.

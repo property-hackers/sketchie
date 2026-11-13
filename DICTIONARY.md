@@ -1,4 +1,4 @@
-# sketchy.json data dictionary
+# sketchie.json data dictionary
 
 **Draft 0.2.** Every enumerated field in the [specification](SPEC.md) takes one of the
 values listed here. Values are lowercase `snake_case`.
